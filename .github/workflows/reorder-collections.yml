@@ -3,7 +3,7 @@ name: Reorder Shopify Collections
 on:
   workflow_dispatch:      # botón "Run workflow" en Actions
   schedule:
-    - cron: "0 */6 * * *" # corre cada 6 horas (ajústalo si quieres)
+    - cron: "0 7 * * *"   # 07:00 UTC = 1:00 a. m. America/Mexico_City
 
 jobs:
   reorder:
@@ -20,8 +20,8 @@ jobs:
       INCLUDE_MANUAL: "true"         # incluye colecciones manuales
       HANDLE_PREFIX: ""              # opcional: filtra por prefijo de handle
       # Control de costo de consultas
-      MAX_PRODUCTS_PER_PAGE: "25"    # reduce si ves costo alto
-      MAX_INVENTORY_LEVELS: "10"     # si tienes 1 sola location, pon "1"
+      MAX_PRODUCTS_PER_PAGE: "12"    # reduce si ves costo alto
+      MAX_INVENTORY_LEVELS: "1"     # si tienes 1 sola location, pon "1"
       LOCATION_IDS: ""               # opcional: IDs de locations (coma-separadas)
     steps:
       - uses: actions/checkout@v4

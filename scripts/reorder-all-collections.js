@@ -21,6 +21,10 @@ const MAX_PRODUCTS_PER_PAGE = Number(process.env.MAX_PRODUCTS_PER_PAGE || "25");
 const MAX_INVENTORY_LEVELS = Number(process.env.MAX_INVENTORY_LEVELS || "10");
 const LOCATION_IDS = (process.env.LOCATION_IDS || "").split(",").map(s => s.trim()).filter(Boolean);
 
+// ⬇⬇⬇ NUEVO: exclusiones por handle o por ID (GID o numérico)
+const EXCLUDE_HANDLES = (process.env.EXCLUDE_HANDLES || "").split(",").map(s => s.trim()).filter(Boolean);
+const EXCLUDE_COLLECTION_IDS = (process.env.EXCLUDE_COLLECTION_IDS || "").split(",").map(s => s.trim()).filter(Boolean);
+
 if (!STORE || !TOKEN) {
   console.error("Faltan envs: SHOPIFY_STORE_DOMAIN, SHOPIFY_ADMIN_TOKEN");
   process.exit(1);
@@ -166,10 +170,18 @@ async function fetchAllCollections() {
     if (!hasNextPage) break;
     cursor = endCursor;
   }
+
+  // ⬇⬇⬇ NUEVO: filtro con exclusiones
   return out.filter(c => {
     if (HANDLE_PREFIX && !c.handle.startsWith(HANDLE_PREFIX)) return false;
-    if (!INCLUDE_SMART && isSmart(c)) return false;
-    if (!INCLUDE_MANUAL && !isSmart(c)) return false;
+    if (!INCLUDE_SMART && isSmart(c)) return false;     // smart
+    if (!INCLUDE_MANUAL && !isSmart(c)) return false;   // manual
+
+    // excluir por handle o por ID (acepta GID completo y numérico)
+    const idNum = (c.id || "").replace("gid://shopify/Collection/", "");
+    if (EXCLUDE_HANDLES.includes(c.handle)) return false;
+    if (EXCLUDE_COLLECTION_IDS.includes(c.id) || EXCLUDE_COLLECTION_IDS.includes(idNum)) return false;
+
     return true;
   });
 }

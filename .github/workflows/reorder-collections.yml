@@ -1,0 +1,40 @@
+name: Reorder Shopify Collections
+
+on:
+  workflow_dispatch:      # botón "Run workflow" en Actions
+  schedule:
+    - cron: "0 */6 * * *" # corre cada 6 horas (ajústalo si quieres)
+
+jobs:
+  reorder:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+      SHOPIFY_ADMIN_TOKEN:  ${{ secrets.SHOPIFY_ADMIN_TOKEN }}
+      SHOPIFY_API_VERSION:  ${{ secrets.SHOPIFY_API_VERSION }}  # opcional; script tiene default
+      # Controles de ejecución
+      DRY_RUN: "true"                # primero simulación (no aplica cambios)
+      INCLUDE_SMART: "true"          # incluye colecciones automáticas
+      INCLUDE_MANUAL: "true"         # incluye colecciones manuales
+      HANDLE_PREFIX: ""              # opcional: filtra por prefijo de handle
+      # Control de costo de consultas
+      MAX_PRODUCTS_PER_PAGE: "25"    # reduce si ves costo alto
+      MAX_INVENTORY_LEVELS: "10"     # si tienes 1 sola location, pon "1"
+      LOCATION_IDS: ""               # opcional: IDs de locations (coma-separadas)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Show repo files (debug)
+        run: |
+          pwd
+          ls -la
+          ls -la scripts || true
+
+      - name: Run reorder script
+        run: node scripts/reorder-all-collections.js

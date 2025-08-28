@@ -15,7 +15,7 @@ jobs:
       SHOPIFY_ADMIN_TOKEN:  ${{ secrets.SHOPIFY_ADMIN_TOKEN }}
       SHOPIFY_API_VERSION:  ${{ secrets.SHOPIFY_API_VERSION }}  # opcional; script tiene default
       # Controles de ejecución
-      DRY_RUN: "true"                # primero simulación (no aplica cambios)
+      DRY_RUN: "false"                # primero simulación (no aplica cambios)
       INCLUDE_SMART: "true"          # incluye colecciones automáticas
       INCLUDE_MANUAL: "true"         # incluye colecciones manuales
       HANDLE_PREFIX: ""              # opcional: filtra por prefijo de handle

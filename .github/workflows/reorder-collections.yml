@@ -19,9 +19,14 @@ jobs:
       INCLUDE_SMART: "true"          # incluye colecciones automáticas
       INCLUDE_MANUAL: "true"         # incluye colecciones manuales
       HANDLE_PREFIX: ""              # opcional: filtra por prefijo de handle
+
+      # EXCLUSIONES
+      EXCLUDE_COLLECTION_IDS: "648364163362"
+      EXCLUDE_HANDLES: ""
+
       # Control de costo de consultas
       MAX_PRODUCTS_PER_PAGE: "12"    # reduce si ves costo alto
-      MAX_INVENTORY_LEVELS: "1"     # si tienes 1 sola location, pon "1"
+      MAX_INVENTORY_LEVELS: "1"      # si tienes 1 sola location, pon "1"
       LOCATION_IDS: ""               # opcional: IDs de locations (coma-separadas)
     steps:
       - uses: actions/checkout@v4

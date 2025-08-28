@@ -30,23 +30,64 @@ const GQL = `https://${STORE}/admin/api/${API_VERSION}/graphql.json`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function gql(query, variables) {
-  const res = await fetchImpl(GQL, {
-    method: "POST",
-    headers: {
-      "X-Shopify-Access-Token": TOKEN,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`GraphQL HTTP ${res.status}: ${t}`);
+  const MAX_RETRIES = 6;
+  let attempt = 0;
+
+  while (true) {
+    const res = await fetchImpl(GQL, {
+      method: "POST",
+      headers: {
+        "X-Shopify-Access-Token": TOKEN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`GraphQL HTTP ${res.status}: ${t}`);
+    }
+
+    const json = await res.json();
+
+    // Si Shopify responde errores, checa si es THROTTLED para reintentar.
+    if (json.errors) {
+      const throttled = json.errors.find(
+        (e) => e?.extensions?.code === "THROTTLED" || /Throttled/i.test(e?.message || "")
+      );
+      if (throttled && attempt < MAX_RETRIES) {
+        // Si viene el estado de throttle, calcula espera; si no, usa backoff exponencial.
+        const ts = json.extensions?.cost?.throttleStatus;
+        let waitMs;
+        if (ts && typeof ts.currentlyAvailable === "number" && typeof ts.restoreRate === "number") {
+          // Mantén un colchón de créditos antes de la siguiente llamada.
+          const buffer = 300;
+          const deficit = buffer - ts.currentlyAvailable;
+          waitMs = deficit > 0 ? Math.ceil((deficit / Math.max(1, ts.restoreRate)) * 1000) + 400 : 800;
+        } else {
+          waitMs = Math.floor(500 * Math.pow(2, attempt) + Math.random() * 250);
+        }
+        await sleep(waitMs);
+        attempt++;
+        continue; // reintenta
+      }
+      // Otro error distinto a THROTTLED
+      throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
+    }
+
+    // Éxito: si viene throttleStatus, duerme un poco si estamos bajos de créditos
+    const ts = json.extensions?.cost?.throttleStatus;
+    if (ts && typeof ts.currentlyAvailable === "number" && typeof ts.restoreRate === "number") {
+      const buffer = 300; // queremos quedarnos con ~300 créditos libres
+      const deficit = buffer - ts.currentlyAvailable;
+      if (deficit > 0) {
+        const waitMs = Math.ceil((deficit / Math.max(1, ts.restoreRate)) * 1000) + 200;
+        await sleep(waitMs);
+      }
+    }
+
+    return json.data;
   }
-  const json = await res.json();
-  if (json.errors) {
-    throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
-  }
-  return json.data;
 }
 
 const LIST_COLLECTIONS = `
